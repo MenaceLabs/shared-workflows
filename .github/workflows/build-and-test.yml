@@ -1,0 +1,65 @@
+name: Build & Test
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version'
+        type: string
+        default: '20'
+      build-command:
+        description: 'Build command to run'
+        type: string
+        default: 'npm run build'
+      test-command:
+        description: 'Test command to run (empty to skip)'
+        type: string
+        default: ''
+      artifact-path:
+        description: 'Build output path to upload as artifact (empty to skip)'
+        type: string
+        default: ''
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: ${{ inputs.build-command }}
+
+      - name: Upload build artifact
+        if: ${{ inputs.artifact-path != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: ${{ inputs.artifact-path }}
+          retention-days: 7
+
+  test:
+    if: ${{ inputs.test-command != '' }}
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: ${{ inputs.test-command }}
